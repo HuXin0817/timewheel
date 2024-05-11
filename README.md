@@ -24,9 +24,16 @@ import (
 )
 
 func main() {
+    // create a new time wheel, interval is 500ms
 	tw := timewheel.New(500 * time.Millisecond)
+
+    // a after channel in 1s duration
 	afterChan := tw.After(time.Second)
+
+    // a new timer in 2s duration
 	timer := time.NewTimer(time.Second * 2)
+
+    // a new ticker in 3s duration
 	ticker := time.NewTicker(time.Second * 3)
 	for range 5 {
 		select {

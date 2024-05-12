@@ -11,10 +11,8 @@ import (
 	goos: darwin
 	goarch: arm64
 	pkg: github.com/HuXin0817/timewheel
-	BenchmarkTimeWheel
-	BenchmarkTimeWheel-8   	       5	 200074033 ns/op
-	BenchmarkStandard
-	BenchmarkStandard-8    	       1	1000141833 ns/op
+	BenchmarkTimeWheel-8   	       8	 125043838 ns/op	     727 B/op	       7 allocs/op
+	BenchmarkStandard-8    	       1	1000140750 ns/op	    4552 B/op	      31 allocs/op
 	PASS
 */
 

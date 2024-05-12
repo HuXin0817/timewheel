@@ -12,35 +12,37 @@ $ go get -u github.com/HuXin0817/timewheel
 
 ## Usage
 
-You can use timewheel like the golang time package, it contains the methods like `Now`, `Since`, `After`, etc.
+You can use timewheel as the golang time package, it contains the methods for example `Now`, `Since`, `After`, etc.
 
 ```go
 package main
 
 import (
 	"fmt"
-	"github.com/HuXin0817/timewheel"
 	"time"
+
+	"github.com/HuXin0817/timewheel"
 )
 
 func main() {
-    // create a new time wheel, interval is 500ms
+	// create a new time wheel, interval is 500ms
 	tw := timewheel.New(500 * time.Millisecond)
 
-    // a after channel in 1s duration
+	// create a after channel in 1s duration
 	afterChan := tw.After(time.Second)
 
-    // a new timer in 2s duration
-	timer := time.NewTimer(time.Second * 2)
+	// create a new timer in 2s duration
+	timer := tw.NewTimer(time.Second * 2)
 
-    // a new ticker in 3s duration
-	ticker := time.NewTicker(time.Second * 3)
+	// create a new ticker in 3s duration
+	ticker := tw.NewTicker(time.Second * 3)
 	for range 5 {
 		select {
 		case <-afterChan:
 			fmt.Print("afterChan out.")
 		case <-ticker.C:
 			fmt.Print("ticker tick.")
+			ticker.Reset(time.Second)
 		case <-timer.C:
 			fmt.Print("timer done.")
 		}

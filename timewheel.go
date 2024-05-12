@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+const minInterval = 10 * time.Millisecond // the min interval, not surport smaller than it
+
 // timeslot is a struct storage and deal the elements in the slot
 type timeslot[T any] struct {
 	do   func(elem *T)
@@ -27,7 +29,9 @@ func (ts *timeslot[T]) add(idx int64, t *T) *T {
 	if s, ok := ts.slot[idx]; ok {
 		ts.slot[idx] = append(s, t)
 	} else {
-		ts.slot[idx] = []*T{t}
+		// make slice with cap 10
+		ts.slot[idx] = make([]*T, 1, 10)
+		ts.slot[idx][0] = t
 	}
 	ts.mu.Unlock()
 	return t
@@ -63,14 +67,14 @@ func (t *Timer) Stop() {
 
 // Ticker A suitable ticker struct in timeWheel
 type Ticker struct {
-	C      chan time.Time
-	belong *TimeWheel
-	addIdx int64
-	stop   atomic.Bool
+	C         chan time.Time
+	belong    *TimeWheel
+	increment atomic.Int64
+	stop      atomic.Bool
 }
 
 // Reset reset the interval of the ticker
-func (t *Ticker) Reset(d time.Duration) { t.addIdx = int64(d / t.belong.interval) }
+func (t *Ticker) Reset(d time.Duration) { t.increment.Store(int64(d / t.belong.interval)) }
 
 // Stop stop the ticker and block the channel
 func (t *Ticker) Stop() {
@@ -82,19 +86,20 @@ func (t *Ticker) Stop() {
 }
 
 type TimeWheel struct {
-	now        time.Time
-	ticker     *time.Ticker
-	current    int64
-	interval   time.Duration
-	timerSlot  *timeslot[Timer]
-	tickerSlot *timeslot[Ticker]
-	stop       atomic.Bool
+	now        time.Time         // the time wheel now time
+	ticker     *time.Ticker      // interval ticker
+	current    int64             // the current duration
+	interval   time.Duration     // the timewheel interval
+	timerSlot  *timeslot[Timer]  // timer slot
+	tickerSlot *timeslot[Ticker] // ticker slot
+	stop       atomic.Bool       // stop signal
 }
 
 // New Create a time wheel for a specified interval
 func New(interval time.Duration) (tw *TimeWheel) {
-	if interval < time.Millisecond {
-		interval = time.Millisecond
+	// it the interval given smaller than the min interval, fix it to the mininterval
+	if interval < minInterval {
+		interval = minInterval
 	}
 
 	tw = &TimeWheel{
@@ -107,7 +112,7 @@ func New(interval time.Duration) (tw *TimeWheel) {
 				return
 			}
 			t.C <- tw.now
-			tw.tickerSlot.add(tw.current+t.addIdx, t)
+			tw.tickerSlot.add(tw.current+t.increment.Load(), t)
 		}),
 	}
 
@@ -117,9 +122,8 @@ func New(interval time.Duration) (tw *TimeWheel) {
 				return
 			}
 			tw.current++
-			idx := tw.current
-			tw.timerSlot.done(idx)
-			tw.tickerSlot.done(idx)
+			tw.timerSlot.done(tw.current)
+			tw.tickerSlot.done(tw.current)
 		}
 	}()
 
@@ -141,18 +145,24 @@ func (tw *TimeWheel) Stop() {
 	tw.ticker.Stop()
 }
 
-// Reset the interval of timewheel
+// Reset the time interval of timewheel
 func (tw *TimeWheel) Reset(d time.Duration) {
 	tw.ticker.Reset(d)
 	tw.interval = d
 }
 
+// increment transform the duration to the index increment
+func (tw *TimeWheel) increment(d time.Duration) int64 {
+	if d <= tw.interval {
+		return 1
+	}
+	return int64(d / tw.interval)
+}
+
 // NewTimer Create a new timer with timeout
 func (tw *TimeWheel) NewTimer(d time.Duration) (timer *Timer) {
-	if d < tw.interval {
-		d = tw.interval
-	}
-	return tw.timerSlot.add(tw.current+int64(d/tw.interval), &Timer{
+	idx := tw.current + tw.increment(d)
+	return tw.timerSlot.add(idx, &Timer{
 		C:      make(chan time.Time, 1),
 		belong: tw,
 	})
@@ -160,12 +170,11 @@ func (tw *TimeWheel) NewTimer(d time.Duration) (timer *Timer) {
 
 // NewTicker Create a new ticker with interval
 func (tw *TimeWheel) NewTicker(d time.Duration) (ticker *Ticker) {
-	if d < tw.interval {
-		d = tw.interval
-	}
-	return tw.tickerSlot.add(tw.current+int64(d/tw.interval), &Ticker{
+	increment := tw.increment(d)
+	ticker = &Ticker{
 		C:      make(chan time.Time, 1),
 		belong: tw,
-		addIdx: int64(d / tw.interval),
-	})
+	}
+	ticker.increment.Store(increment)
+	return tw.tickerSlot.add(tw.current+increment, ticker)
 }

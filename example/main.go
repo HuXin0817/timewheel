@@ -30,7 +30,7 @@ func main() {
 		case <-ticker.C:
 			fmt.Print("ticker tick.") // Print message when the ticker ticks
 		case <-timer.C:
-			fmt.Print("timer done.") // Print message when the timer is done
+			fmt.Print("timer done.")  // Print message when the timer is done
 			ticker.Reset(time.Second) // Reset the ticker to tick every 1 second
 		}
 

@@ -15,7 +15,7 @@ type timeslot[T any] struct {
 	mu   sync.Mutex     // Mutex for synchronizing access to the slot map
 }
 
-// Creates a new instance of timeslot
+// newTimeslot Creates a new instance of timeslot
 func newTimeslot[T any](do func(elem *T)) *timeslot[T] {
 	return &timeslot[T]{
 		do:   do,
@@ -23,7 +23,7 @@ func newTimeslot[T any](do func(elem *T)) *timeslot[T] {
 	}
 }
 
-// Adds a timer to the timeslot at the specified index
+// add Adds a timer to the timeslot at the specified index
 func (ts *timeslot[T]) add(idx int64, t *T) *T {
 	ts.mu.Lock()
 	if s, ok := ts.slot[idx]; ok {
@@ -36,7 +36,7 @@ func (ts *timeslot[T]) add(idx int64, t *T) *T {
 	return t
 }
 
-// Executes the callback for all timers at the specified index and removes them from the slot
+// done Executes the callback for all timers at the specified index and removes them from the slot
 func (ts *timeslot[T]) done(idx int64) {
 	if s, ok := ts.slot[idx]; ok {
 		for _, t := range s {
@@ -55,7 +55,7 @@ type Timer struct {
 	stop   atomic.Bool    // Atomic boolean to indicate if the timer is stopped
 }
 
-// Stops the timer
+// Stop Stops the timer
 func (t *Timer) Stop() {
 	if t.stop.Load() {
 		return
@@ -72,12 +72,12 @@ type Ticker struct {
 	stop      atomic.Bool    // Atomic boolean to indicate if the ticker is stopped
 }
 
-// Resets the ticker to fire at the specified duration
+// Reset Resets the ticker to fire at the specified duration
 func (t *Ticker) Reset(d time.Duration) {
 	t.increment.Store(int64(d / t.belong.interval))
 }
 
-// Stops the ticker
+// Stop Stops the ticker
 func (t *Ticker) Stop() {
 	if t.stop.Load() {
 		return
@@ -97,7 +97,7 @@ type TimeWheel struct {
 	stop       atomic.Bool       // Atomic boolean to indicate if the TimeWheel is stopped
 }
 
-// Creates a new TimeWheel with the specified interval
+// New Creates a new TimeWheel with the specified interval
 func New(interval time.Duration) (tw *TimeWheel) {
 	if interval < minInterval {
 		interval = minInterval
@@ -131,34 +131,34 @@ func New(interval time.Duration) (tw *TimeWheel) {
 	return
 }
 
-// Returns the current time of the TimeWheel
+// Now Returns the current time of the TimeWheel
 func (tw *TimeWheel) Now() time.Time {
 	return tw.now
 }
 
-// Returns the duration since the specified time
+// Since Returns the duration since the specified time
 func (tw *TimeWheel) Since(t time.Time) time.Duration {
 	return tw.now.Sub(t)
 }
 
-// Returns a channel that will receive the current time after the specified duration
+// After Returns a channel that will receive the current time after the specified duration
 func (tw *TimeWheel) After(d time.Duration) chan time.Time {
 	return tw.NewTimer(d).C
 }
 
-// Stops the TimeWheel
+// Stop Stops the TimeWheel
 func (tw *TimeWheel) Stop() {
 	tw.stop.Store(true)
 	tw.ticker.Stop()
 }
 
-// Resets the TimeWheel interval
+// Reset Resets the TimeWheel interval
 func (tw *TimeWheel) Reset(d time.Duration) {
 	tw.ticker.Reset(d)
 	tw.interval = d
 }
 
-// Calculates the number of ticks for the specified duration
+// increment Calculates the number of ticks for the specified duration
 func (tw *TimeWheel) increment(d time.Duration) int64 {
 	if d <= tw.interval {
 		return 1
@@ -166,7 +166,7 @@ func (tw *TimeWheel) increment(d time.Duration) int64 {
 	return int64(d / tw.interval)
 }
 
-// Creates a new timer that will fire after the specified duration
+// NewTimer Creates a new timer that will fire after the specified duration
 func (tw *TimeWheel) NewTimer(d time.Duration) *Timer {
 	idx := tw.current + tw.increment(d)
 	return tw.timerSlot.add(idx, &Timer{
@@ -175,7 +175,7 @@ func (tw *TimeWheel) NewTimer(d time.Duration) *Timer {
 	})
 }
 
-// Creates a new ticker that will fire at the specified interval
+// NewTicker Creates a new ticker that will fire at the specified interval
 func (tw *TimeWheel) NewTicker(d time.Duration) *Ticker {
 	increment := tw.increment(d)
 	ticker := &Ticker{

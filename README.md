@@ -12,7 +12,8 @@ $ go get -u github.com/HuXin0817/timewheel
 
 ## Usage
 
-TimeWheel can be used similarly to the standard Go `time` package. It includes methods such as `Now`, `Since`, `After`, and more.
+TimeWheel can be used similarly to the standard Go `time` package. It includes methods such as `Now`, `Since`, `After`,
+and more.
 
 ### Example
 
@@ -21,8 +22,8 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"github.com/HuXin0817/timewheel"
+	"time"
 )
 
 func main() {
@@ -48,7 +49,7 @@ func main() {
 		case <-ticker.C:
 			fmt.Print("ticker tick.") // Print message when the ticker ticks
 		case <-timer.C:
-			fmt.Print("timer done.") // Print message when the timer is done
+			fmt.Print("timer done.")  // Print message when the timer is done
 			ticker.Reset(time.Second) // Reset the ticker to tick every 1 second
 		}
 
@@ -75,4 +76,5 @@ PASS
 
 ## Contributions
 
-Contributions are welcome! If you find any issues or have suggestions for improvements, feel free to open an issue or create a pull request on the [GitHub repository](https://github.com/HuXin0817/timewheel).
+Contributions are welcome! If you find any issues or have suggestions for improvements, feel free to open an issue or
+create a pull request on the [GitHub repository](https://github.com/HuXin0817/timewheel).
